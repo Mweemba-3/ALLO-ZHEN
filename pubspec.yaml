@@ -1,0 +1,82 @@
+name: allo_zhen
+description: "A real-time messaging application with background synchronization and local notifications."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Dynamic Country Code Picker
+  country_code_picker: ^3.0.0
+
+  open_filex: ^4.4.0
+
+  # Backend & Realtime
+  supabase_flutter: ^2.8.0
+
+  # Background Tasks & Local Notifications
+  workmanager:
+    git:
+      url: https://github.com/fluttercommunity/flutter_workmanager.git
+      path: workmanager
+      ref: main
+  flutter_local_notifications: ^17.2.3
+
+  # Local Offline Storage & Caching
+  sqflite: ^2.3.3+1
+  sqflite_common_ffi: ^2.3.3  # ✅ Added for desktop/Windows compatibility
+  flutter_secure_storage: ^9.2.2
+  path_provider: ^2.1.3
+  path: ^1.9.0
+
+  # UI, Media & Formats
+  image_picker: ^1.1.2
+  image_cropper: ^8.0.2
+  file_picker: ^8.0.0
+  flutter_markdown: ^0.7.3
+  url_launcher: ^6.3.0
+  video_player: ^2.8.6
+
+  # Voice & Audio
+  record: ^5.0.0
+  audioplayers: ^6.0.0
+  just_audio: ^0.9.36
+
+  # Permissions & System Services
+  permission_handler: ^11.3.1
+
+  # Calls & Realtime Infrastructure
+  flutter_contacts: ^1.1.0
+  flutter_webrtc: ^1.5.2  # ✅ FIXED: Changed from ^2.6.0 to ^1.5.2
+
+  # Utilities
+  intl: ^0.19.0
+  image: ^4.2.0
+  http: ^1.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.1
+
+# Overrides obsolete transitive sub-packages breaking the interface build
+dependency_overrides:
+  record_linux: ^1.3.1
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/
