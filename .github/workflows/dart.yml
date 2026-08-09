@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # 🔥 THE FIX: Disable the migration BEFORE anything else runs
+      # Disable the Swift Package Manager migration
       - name: Disable Swift Package Manager migration
         run: |
           echo "FLUTTER_SUPPRESS_MIGRATIONS=true" >> $GITHUB_ENV
@@ -20,17 +20,16 @@ jobs:
           channel: 'stable'
           architecture: x64
 
-      # 🔥 FIX iOS DEPLOYMENT TARGET TO 14.0 FOR COCOAPODS
-      - name: Update iOS Deployment Target in Podfile
+      # Force iOS 14.0 deployment target in Podfile to fix workmanager_apple error
+      - name: Force iOS 14.0 in Podfile
         run: |
-          PODFILE_PATH="ios/Podfile"
-          if [ -f "$PODFILE_PATH" ]; then
-            # Uncomment platform line and set it to 14.0
-            sed -i '' "s/# platform :ios, '.*'/platform :ios, '14.0'/" "$PODFILE_PATH"
-            sed -i '' "s/platform :ios, '.*'/platform :ios, '14.0'/" "$PODFILE_PATH"
-            echo "Successfully updated Podfile platform to 14.0"
+          PODFILE="ios/Podfile"
+          if [ -f "$PODFILE" ]; then
+            # Uncomment platform line if commented out, and set version to 14.0
+            sed -i '' "s/^[[:space:]]*#*[[:space:]]*platform :ios,.*/platform :ios, '14.0'/" "$PODFILE"
+            echo "Successfully updated Podfile platform requirement to 14.0"
           else
-            echo "Podfile not found!"
+            echo "Error: ios/Podfile not found!"
             exit 1
           fi
 
