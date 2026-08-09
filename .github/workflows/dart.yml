@@ -14,8 +14,29 @@ jobs:
         with:
           channel: 'stable'
           architecture: x64
+
       - run: flutter pub get
-      
+
+      # 👇 PUT THE FIX HERE (between pub get and pod repo update)
+      - name: Fix .gitignore encoding and skip migration
+        run: |
+          echo "# Flutter" > .gitignore
+          echo "build/" >> .gitignore
+          echo ".dart_tool/" >> .gitignore
+          echo ".idea/" >> .gitignore
+          echo ".vscode/" >> .gitignore
+          echo "*.log" >> .gitignore
+          echo "*.iml" >> .gitignore
+          echo "ios/Pods/" >> .gitignore
+          echo "ios/.symlinks/" >> .gitignore
+          echo "ios/Flutter/Generated.xcconfig" >> .gitignore
+          echo "ios/Flutter/flutter_export_environment.sh" >> .gitignore
+          echo "android/.gradle/" >> .gitignore
+          echo "android/app/build/" >> .gitignore
+          echo "android/.kotlin/" >> .gitignore
+          echo "pubspec.lock" >> .gitignore
+          echo ".metadata" >> .gitignore
+          export FLUTTER_SUPPRESS_MIGRATIONS=true
 
       - run: pod repo update
         working-directory: ios
