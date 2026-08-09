@@ -10,12 +10,68 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # Disable the Swift Package Manager migration
+      - name: Disable Swift Package Manager migration
+        run: |
+          echo "FLUTTER_SUPPRESS_MIGRATIONS=true" >> $GITHUB_ENV
+
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           architecture: x64
+
+      # Force iOS 14.0 deployment target in Podfile & uncomment platform line safely
+      - name: Force iOS 14.0 in Podfile
+        run: |
+          PODFILE="ios/Podfile"
+          if [ -f "$PODFILE" ]; then
+            # If the line exists (commented or not), replace it. If not, insert it at the top.
+            if grep -q "platform :ios" "$PODFILE"; then
+              sed -i '' "s/^[[:space:]]*#*[[:space:]]*platform :ios.*/platform :ios, '14.0'/" "$PODFILE"
+            else
+              echo "platform :ios, '14.0'" | cat - "$PODFILE" > temp && mv temp "$PODFILE"
+            fi
+            
+            # Also ensure post_install target deployment target is forced to 14.0 to prevent override blocks
+            if ! grep -q "installer.generated_projects.each" "$PODFILE"; then
+              echo "" >> "$PODFILE"
+              echo "post_install do |installer|" >> "$PODFILE"
+              echo "  installer.generated_projects.each do |project|" >> "$PODFILE"
+              echo "    project.targets.each do |target|" >> "$PODFILE"
+              echo "      target.build_configurations.each do |config|" >> "$PODFILE"
+              echo "        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'" >> "$PODFILE"
+              echo "      end" >> "$PODFILE"
+              echo "    end" >> "$PODFILE"
+              echo "  end" >> "$PODFILE"
+              echo "end" >> "$PODFILE"
+            fi
+
+            echo "Successfully updated Podfile with platform and post_install target blocks for iOS 14.0"
+          else
+            echo "Error: ios/Podfile not found!"
+            exit 1
+          fi
+
       - run: flutter pub get
-      
+
+      - name: Fix .gitignore encoding (just in case)
+        run: |
+          echo "# Flutter" > .gitignore
+          echo "build/" >> .gitignore
+          echo ".dart_tool/" >> .gitignore
+          echo ".idea/" >> .gitignore
+          echo ".vscode/" >> .gitignore
+          echo "*.log" >> .gitignore
+          echo "*.iml" >> .gitignore
+          echo "ios/Pods/" >> .gitignore
+          echo "ios/.symlinks/" >> .gitignore
+          echo "ios/Flutter/Generated.xcconfig" >> .gitignore
+          echo "ios/Flutter/flutter_export_environment.sh" >> .gitignore
+          echo "android/.gradle/" >> .gitignore
+          echo "android/app/build/" >> .gitignore
+          echo "android/.kotlin/" >> .gitignore
+          echo "pubspec.lock" >> .gitignore
+          echo ".metadata" >> .gitignore
 
       - run: pod repo update
         working-directory: ios
