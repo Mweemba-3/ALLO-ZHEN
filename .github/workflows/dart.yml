@@ -10,6 +10,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # 🔥 THE FIX: Disable the migration BEFORE anything else runs
+      - name: Disable Swift Package Manager migration
+        run: |
+          echo "FLUTTER_SUPPRESS_MIGRATIONS=true" >> $GITHUB_ENV
+
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
@@ -17,8 +22,7 @@ jobs:
 
       - run: flutter pub get
 
-      # 👇 PUT THE FIX HERE (between pub get and pod repo update)
-      - name: Fix .gitignore encoding and skip migration
+      - name: Fix .gitignore encoding (just in case)
         run: |
           echo "# Flutter" > .gitignore
           echo "build/" >> .gitignore
@@ -36,7 +40,6 @@ jobs:
           echo "android/.kotlin/" >> .gitignore
           echo "pubspec.lock" >> .gitignore
           echo ".metadata" >> .gitignore
-          export FLUTTER_SUPPRESS_MIGRATIONS=true
 
       - run: pod repo update
         working-directory: ios
