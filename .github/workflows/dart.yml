@@ -20,14 +20,33 @@ jobs:
           channel: 'stable'
           architecture: x64
 
-      # Force iOS 14.0 deployment target in Podfile to fix workmanager_apple error
+      # Force iOS 14.0 deployment target in Podfile & uncomment platform line safely
       - name: Force iOS 14.0 in Podfile
         run: |
           PODFILE="ios/Podfile"
           if [ -f "$PODFILE" ]; then
-            # Uncomment platform line if commented out, and set version to 14.0
-            sed -i '' "s/^[[:space:]]*#*[[:space:]]*platform :ios,.*/platform :ios, '14.0'/" "$PODFILE"
-            echo "Successfully updated Podfile platform requirement to 14.0"
+            # If the line exists (commented or not), replace it. If not, insert it at the top.
+            if grep -q "platform :ios" "$PODFILE"; then
+              sed -i '' "s/^[[:space:]]*#*[[:space:]]*platform :ios.*/platform :ios, '14.0'/" "$PODFILE"
+            else
+              echo "platform :ios, '14.0'" | cat - "$PODFILE" > temp && mv temp "$PODFILE"
+            fi
+            
+            # Also ensure post_install target deployment target is forced to 14.0 to prevent override blocks
+            if ! grep -q "installer.generated_projects.each" "$PODFILE"; then
+              echo "" >> "$PODFILE"
+              echo "post_install do |installer|" >> "$PODFILE"
+              echo "  installer.generated_projects.each do |project|" >> "$PODFILE"
+              echo "    project.targets.each do |target|" >> "$PODFILE"
+              echo "      target.build_configurations.each do |config|" >> "$PODFILE"
+              echo "        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'" >> "$PODFILE"
+              echo "      end" >> "$PODFILE"
+              echo "    end" >> "$PODFILE"
+              echo "  end" >> "$PODFILE"
+              echo "end" >> "$PODFILE"
+            fi
+
+            echo "Successfully updated Podfile with platform and post_install target blocks for iOS 14.0"
           else
             echo "Error: ios/Podfile not found!"
             exit 1
