@@ -20,6 +20,20 @@ jobs:
           channel: 'stable'
           architecture: x64
 
+      # 🔥 FIX iOS DEPLOYMENT TARGET TO 14.0 FOR COCOAPODS
+      - name: Update iOS Deployment Target in Podfile
+        run: |
+          PODFILE_PATH="ios/Podfile"
+          if [ -f "$PODFILE_PATH" ]; then
+            # Uncomment platform line and set it to 14.0
+            sed -i '' "s/# platform :ios, '.*'/platform :ios, '14.0'/" "$PODFILE_PATH"
+            sed -i '' "s/platform :ios, '.*'/platform :ios, '14.0'/" "$PODFILE_PATH"
+            echo "Successfully updated Podfile platform to 14.0"
+          else
+            echo "Podfile not found!"
+            exit 1
+          fi
+
       - run: flutter pub get
 
       - name: Fix .gitignore encoding (just in case)
