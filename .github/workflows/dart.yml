@@ -20,33 +20,62 @@ jobs:
           channel: 'stable'
           architecture: x64
 
-      # Force iOS 14.0 deployment target in Podfile & uncomment platform line safely
-      - name: Force iOS 14.0 in Podfile
+      # Absolute rewrite of Podfile to guarantee iOS 14.0 is at the top
+      - name: Force iOS 14.0 Platform in Podfile
         run: |
           PODFILE="ios/Podfile"
           if [ -f "$PODFILE" ]; then
-            # If the line exists (commented or not), replace it. If not, insert it at the top.
-            if grep -q "platform :ios" "$PODFILE"; then
-              sed -i '' "s/^[[:space:]]*#*[[:space:]]*platform :ios.*/platform :ios, '14.0'/" "$PODFILE"
-            else
-              echo "platform :ios, '14.0'" | cat - "$PODFILE" > temp && mv temp "$PODFILE"
-            fi
+            echo "Rewriting Podfile to explicitly set platform to iOS 14.0..."
             
-            # Also ensure post_install target deployment target is forced to 14.0 to prevent override blocks
-            if ! grep -q "installer.generated_projects.each" "$PODFILE"; then
-              echo "" >> "$PODFILE"
-              echo "post_install do |installer|" >> "$PODFILE"
-              echo "  installer.generated_projects.each do |project|" >> "$PODFILE"
-              echo "    project.targets.each do |target|" >> "$PODFILE"
-              echo "      target.build_configurations.each do |config|" >> "$PODFILE"
-              echo "        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'" >> "$PODFILE"
-              echo "      end" >> "$PODFILE"
-              echo "    end" >> "$PODFILE"
-              echo "  end" >> "$PODFILE"
-              echo "end" >> "$PODFILE"
-            fi
+            # Create a clean Podfile with iOS 14 forced at the top
+            cat << 'EOF' > "$PODFILE"
+# Uncomment this line to define a global platform for your project
+platform :ios, '14.0'
 
-            echo "Successfully updated Podfile with platform and post_install target blocks for iOS 14.0"
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end
+
+post_install do |installer|
+  installer.generated_projects.each do |project|
+    project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+      end
+    end
+  end
+end
+EOF
+            echo "Successfully forced iOS 14.0 inside Podfile."
           else
             echo "Error: ios/Podfile not found!"
             exit 1
