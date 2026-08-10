@@ -62,7 +62,9 @@ jobs:
       - run: flutter pub get
 
       - name: Build iOS Release
-        run: flutter build ios --release --no-codesign
+        run: |
+          export IPHONEOS_DEPLOYMENT_TARGET=14.0
+          flutter build ios --release --no-codesign
 
       - name: Package IPA
         run: |
