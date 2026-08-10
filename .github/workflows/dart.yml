@@ -30,7 +30,6 @@ jobs:
             fi
           fi
 
-          # Force Xcode project deployment target to 14.0 using a Ruby snippet
           ruby -e '
             project_path = "ios/Runner.xcodeproj/project.pbxproj"
             content = File.read(project_path)
@@ -47,16 +46,17 @@ jobs:
 
       - name: Package IPA
         run: |
+          mkdir -p build/ios/ipa
           cd build/ios/iphoneos
           mkdir Payload
           mv Runner.app/ Payload
-          zip -qq -r -9 FlutterIpaExport.ipa Payload
+          zip -qq -r -9 ../ipa/FlutterIpaExport.ipa Payload
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: build/ios/iphoneos/Payload/FlutterIpaExport.ipa
+          file: build/ios/ipa/FlutterIpaExport.ipa
           tag: v1.0
           overwrite: true
           body: "Automatic iOS Build release"
