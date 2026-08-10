@@ -18,48 +18,27 @@ jobs:
           channel: 'stable'
           architecture: x64
 
-      - name: Force iOS 14.0 Platform in Podfile
+      - run: flutter pub get
+
+      - name: Force iOS 14.0 in Xcode Project and Podfile
         run: |
           PODFILE="ios/Podfile"
-          mkdir -p ios
-          cat << 'EOF' > "$PODFILE"
-          platform :ios, '14.0'
-          ENV['COCOAPODS_DISABLE_STATS'] = 'true'
-          project 'Runner', {
-            'Debug' => :debug,
-            'Profile' => :release,
-            'Release' => :release,
-          }
-          def flutter_root
-            generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
-            unless File.exist?(generated_xcode_build_settings_path)
-              raise "#{generated_xcode_build_settings_path} must exist. Run flutter pub get first"
-            end
-            File.foreach(generated_xcode_build_settings_path) do |line|
-              matches = line.match(/FLUTTER_ROOT\=(.*)/)
-              return matches[1].strip if matches
-            end
-            raise "FLUTTER_ROOT not found"
-          end
-          require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
-          flutter_ios_podfile_setup
-          target 'Runner' do
-            use_frameworks!
-            use_modular_headers!
-            flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-          end
-          post_install do |installer|
-            installer.generated_projects.each do |project|
-              project.targets.each do |target|
-                target.build_configurations.each do |config|
-                  config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
-                end
-              end
-            end
-          end
-          EOF
+          if [ -f "$PODFILE" ]; then
+            sed -i '' "s/platform :ios, '13.0'/platform :ios, '14.0'/g" "$PODFILE"
+            if ! grep -q "platform :ios" "$PODFILE"; then
+              sed -i '' "1s/^/platform :ios, '14.0'\n/" "$PODFILE"
+            fi
+          fi
 
-      - run: flutter pub get
+          # Force Xcode project deployment target to 14.0 using a Ruby snippet
+          ruby -e '
+            project_path = "ios/Runner.xcodeproj/project.pbxproj"
+            content = File.read(project_path)
+            content.gsub!(/IPHONEOS_DEPLOYMENT_TARGET = 13.0/, "IPHONEOS_DEPLOYMENT_TARGET = 14.0")
+            content.gsub!(/IPHONEOS_DEPLOYMENT_TARGET = "13.0"/, "IPHONEOS_DEPLOYMENT_TARGET = \"14.0\"")
+            File.write(project_path, content)
+          '
+          echo "Successfully forced iOS 14.0 deployment target."
 
       - name: Build iOS Release
         run: |
