@@ -27,11 +27,15 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	
-	<!-- ✅ CAMERA AND MICROPHONE PERMISSIONS (ADDED) -->
+	<!-- ✅ CAMERA AND MICROPHONE PERMISSIONS -->
 	<key>NSCameraUsageDescription</key>
 	<string>Allo Zhen needs camera access for video calls</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Allo Zhen needs microphone access for audio calls</string>
+
+	<!-- ✅ CONTACTS PERMISSION (FIXES THE LAUNCH CRASH) -->
+	<key>NSContactsUsageDescription</key>
+	<string>Allo Zhen needs access to your contacts to let you connect with your friends.</string>
 	
 	<key>UIApplicationSceneManifest</key>
 	<dict>
