@@ -571,13 +571,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> with TickerProvider
 
   Future<void> _pickDocument() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip'],
       );
 
-      if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
+      if (result != null && result.single.path != null) {
+        final file = File(result.single.path!);
         setState(() => _isSending = true);
         final String? url = await _chatRepo.uploadAttachment(file, 'attachments');
         setState(() => _isSending = false);
@@ -715,9 +715,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> with TickerProvider
                 }),
                 _buildAttachmentOption(Icons.headphones, Colors.orange, 'Audio', () async {
                   Navigator.pop(context);
-                  FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.audio);
-                  if (result != null && result.files.single.path != null) {
-                    final file = File(result.files.single.path!);
+                  final result = await FilePicker.pickFiles(type: FileType.audio);
+                  if (result != null && result.single.path != null) {
+                    final file = File(result.single.path!);
                     setState(() => _isSending = true);
                     final String? url = await _chatRepo.uploadAttachment(file, 'attachments');
                     setState(() => _isSending = false);

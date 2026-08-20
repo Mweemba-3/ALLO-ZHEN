@@ -26,44 +26,44 @@ dependencies:
       url: https://github.com/fluttercommunity/flutter_workmanager.git
       path: workmanager
       ref: main
-  flutter_local_notifications: ^17.2.3
+  flutter_local_notifications: ^22.3.0
 
   # Local Offline Storage & Caching
   sqflite: ^2.3.3+1
   sqflite_common_ffi: ^2.3.3  # ✅ Added for desktop/Windows compatibility
-  flutter_secure_storage: ^9.2.2
+  flutter_secure_storage: ^11.0.0
   path_provider: ^2.1.3
   path: ^1.9.0
 
   # UI, Media & Formats
   image_picker: ^1.1.2
-  image_cropper: ^8.0.2
-  file_picker: ^8.0.0
+  image_cropper: ^12.2.1
+  file_picker: ^12.0.0
   flutter_markdown: ^0.7.3
   url_launcher: ^6.3.0
   video_player: ^2.8.6
 
   # Voice & Audio
-  record: ^5.0.0
+  record: ^6.2.1
   audioplayers: ^6.0.0
-  just_audio: ^0.9.36
+  just_audio: ^0.10.6
 
   # Permissions & System Services
-  permission_handler: ^11.3.1
+  permission_handler: ^13.0.1
 
   # Calls & Realtime Infrastructure
-  flutter_contacts: ^1.1.0
+  # flutter_contacts: ^2.3.1  # ✅ ONLY THIS IS COMMENTED OUT
   flutter_webrtc: ^1.5.2  # ✅ FIXED: Changed from ^2.6.0 to ^1.5.2
 
   # Utilities
-  intl: ^0.19.0
+  intl: ^0.20.3
   image: ^4.2.0
   http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.1
 
 # Overrides obsolete transitive sub-packages breaking the interface build

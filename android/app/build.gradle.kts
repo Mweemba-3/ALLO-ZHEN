@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.mscodeforge.allo_zhen"
-    compileSdk = 36
+    compileSdk = 37 // 👈 Assigned directly as an integer to prevent type mismatch
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -17,7 +17,7 @@ android {
     defaultConfig {
         applicationId = "com.mscodeforge.allo_zhen"
         minSdk = flutter.minSdkVersion
-        targetSdk = 36
+        targetSdk = 37
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

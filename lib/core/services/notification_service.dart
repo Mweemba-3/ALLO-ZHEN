@@ -10,7 +10,6 @@ class NotificationService {
 
   bool _isInitialized = false;
 
-  // ✅ Callback for notification taps (set from main.dart)
   void Function(NotificationResponse)? onNotificationTap;
 
   Future<void> init() async {
@@ -30,10 +29,9 @@ class NotificationService {
     );
 
     await _notificationsPlugin.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         debugPrint('Notification clicked with payload: ${response.payload}');
-        // ✅ Forward to the app-defined callback
         onNotificationTap?.call(response);
       },
     );
@@ -70,10 +68,10 @@ class NotificationService {
     );
 
     await _notificationsPlugin.show(
-      id,
-      title,
-      body,
-      notificationDetails,
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: notificationDetails,
       payload: payload,
     );
   }
@@ -92,12 +90,10 @@ class NotificationService {
     );
   }
 
-  // ✅ Cancel a specific notification by ID (e.g., when chat is opened)
   Future<void> cancelNotification(int id) async {
-    await _notificationsPlugin.cancel(id);
+    await _notificationsPlugin.cancel(id: id);
   }
 
-  // ✅ Cancel ALL notifications (good for logout/clear all)
   Future<void> cancelAllNotifications() async {
     await _notificationsPlugin.cancelAll();
   }

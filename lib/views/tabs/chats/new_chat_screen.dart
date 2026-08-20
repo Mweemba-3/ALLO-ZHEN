@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:allo_zhen/core/constants/app_colors.dart';
@@ -150,55 +149,9 @@ class _NewChatScreenState extends State<NewChatScreen> {
 
     List<ContactDisplayItem> verifiedContacts = [];
 
-    try {
-      bool permissionGranted = await FlutterContacts.requestPermission(readonly: true);
-
-      if (permissionGranted) {
-        final deviceContacts = await FlutterContacts.getContacts(
-          withProperties: true,
-          withPhoto: false,
-        );
-
-        for (var contact in deviceContacts) {
-          final displayName = contact.displayName.isNotEmpty
-              ? contact.displayName
-              : 'Unknown Contact';
-
-          for (var phoneObj in contact.phones) {
-            final raw = phoneObj.number;
-            final clean = _cleanDigits(raw);
-            final local = _toLocalFormat(raw);
-            final suffix = _getLast9Digits(raw);
-
-            if (clean.isEmpty) continue;
-
-            final SystemUser? matchedUser = registeredMap[clean] ??
-                registeredMap[local] ??
-                registeredMap[suffix];
-
-            if (matchedUser != null) {
-              verifiedContacts.add(
-                ContactDisplayItem(
-                  name: displayName,
-                  rawPhone: raw,
-                  normalizedPhone: local.isNotEmpty ? local : raw,
-                  isOnAlloZhen: true,
-                  systemUser: matchedUser,
-                ),
-              );
-            }
-          }
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _errorMessage = 'Device contacts access denied. Please grant permissions in settings.';
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint('Error reading device contacts: $e');
-    }
+    // ❌ flutter_contacts logic removed — we skip device contacts for now.
+    // The app will only show registered users from Supabase.
+    // You can re-add this later when you uncomment the package.
 
     // ✅ REMOVED: The loop that added ALL registered users
 
@@ -247,204 +200,202 @@ class _NewChatScreenState extends State<NewChatScreen> {
   }
 
   void _showAddUserDialog() {
-  final nameController = TextEditingController();
-  final phoneController = TextEditingController();
-  bool isSubmitting = false;
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    bool isSubmitting = false;
 
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: AppColors.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (bottomSheetContext) {
-      return StatefulBuilder(
-        builder: (context, setModalState) {
-          Future<void> verifyAndAddUser() async {
-            final name = nameController.text.trim();
-            final rawPhoneInput = phoneController.text.trim();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (bottomSheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            Future<void> verifyAndAddUser() async {
+              final name = nameController.text.trim();
+              final rawPhoneInput = phoneController.text.trim();
 
-            if (name.isEmpty || rawPhoneInput.isEmpty) {
-              ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
-                const SnackBar(
-                  content: Text('Please enter both name and phone number.'),
-                  backgroundColor: Colors.orangeAccent,
-                ),
-              );
-              return;
-            }
-
-            setModalState(() => isSubmitting = true);
-
-            try {
-              // ✅ Clean the input phone number
-              final cleanedInput = _cleanDigits(rawPhoneInput);
-              final localFormat = _toLocalFormat(rawPhoneInput);
-              final last9 = _getLast9Digits(rawPhoneInput);
-
-              // ✅ Try multiple matching strategies
-              final List<dynamic> existing = await _supabase
-                  .from('users')
-                  .select()
-                  .or(
-                    'phone_number.eq.$cleanedInput,' +
-                    'phone_number.eq.$localFormat,' +
-                    'phone_number.ilike.%$last9%'
-                  );
-
-              setModalState(() => isSubmitting = false);
-
-              if (existing.isNotEmpty) {
-                final registeredUser = SystemUser.fromMap(
-                  existing.first as Map<String, dynamic>,
-                );
-
-                if (mounted) {
-                  Navigator.pop(bottomSheetContext);
-                  _loadAndVerifyContacts();
-                  _navigateToChat(registeredUser);
-                }
-              } else {
-                if (mounted) {
-                  Navigator.pop(bottomSheetContext);
-
-                  showDialog(
-                    context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      backgroundColor: AppColors.surface,
-                      title: const Text(
-                        'Not on Allo Zhen',
-                        style: TextStyle(color: AppColors.textPrimary),
-                      ),
-                      content: Text(
-                        '$name ($rawPhoneInput) is not registered on Allo Zhen yet.\n\nWould you like to send them an SMS invite?',
-                        style: const TextStyle(color: AppColors.textSecondary),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(dialogContext),
-                          child: const Text('Cancel',
-                              style: TextStyle(color: Colors.grey)),
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                          ),
-                          onPressed: () {
-                            Navigator.pop(dialogContext);
-                            _sendSmsInvite(rawPhoneInput);
-                          },
-                          child: const Text('Send Invite',
-                              style: TextStyle(color: Colors.white)),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-              }
-            } catch (e) {
-              debugPrint('Verification error: $e');
-              setModalState(() => isSubmitting = false);
-              if (mounted) {
+              if (name.isEmpty || rawPhoneInput.isEmpty) {
                 ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
-                  SnackBar(
-                    content: Text('Verification failed: ${e.toString()}'),
-                    backgroundColor: Colors.redAccent,
+                  const SnackBar(
+                    content: Text('Please enter both name and phone number.'),
+                    backgroundColor: Colors.orangeAccent,
                   ),
                 );
+                return;
+              }
+
+              setModalState(() => isSubmitting = true);
+
+              try {
+                final cleanedInput = _cleanDigits(rawPhoneInput);
+                final localFormat = _toLocalFormat(rawPhoneInput);
+                final last9 = _getLast9Digits(rawPhoneInput);
+
+                final List<dynamic> existing = await _supabase
+                    .from('users')
+                    .select()
+                    .or(
+                      'phone_number.eq.$cleanedInput,' +
+                      'phone_number.eq.$localFormat,' +
+                      'phone_number.ilike.%$last9%'
+                    );
+
+                setModalState(() => isSubmitting = false);
+
+                if (existing.isNotEmpty) {
+                  final registeredUser = SystemUser.fromMap(
+                    existing.first as Map<String, dynamic>,
+                  );
+
+                  if (mounted) {
+                    Navigator.pop(bottomSheetContext);
+                    _loadAndVerifyContacts();
+                    _navigateToChat(registeredUser);
+                  }
+                } else {
+                  if (mounted) {
+                    Navigator.pop(bottomSheetContext);
+
+                    showDialog(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        backgroundColor: AppColors.surface,
+                        title: const Text(
+                          'Not on Allo Zhen',
+                          style: TextStyle(color: AppColors.textPrimary),
+                        ),
+                        content: Text(
+                          '$name ($rawPhoneInput) is not registered on Allo Zhen yet.\n\nWould you like to send them an SMS invite?',
+                          style: const TextStyle(color: AppColors.textSecondary),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: const Text('Cancel',
+                                style: TextStyle(color: Colors.grey)),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                            ),
+                            onPressed: () {
+                              Navigator.pop(dialogContext);
+                              _sendSmsInvite(rawPhoneInput);
+                            },
+                            child: const Text('Send Invite',
+                                style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                }
+              } catch (e) {
+                debugPrint('Verification error: $e');
+                setModalState(() => isSubmitting = false);
+                if (mounted) {
+                  ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
+                    SnackBar(
+                      content: Text('Verification failed: ${e.toString()}'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
               }
             }
-          }
 
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              top: 24,
-              left: 20,
-              right: 20,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Add Contact to Allo Zhen',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: nameController,
-                  style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
-                    labelText: 'Full Name',
-                    labelStyle: const TextStyle(color: AppColors.textSecondary),
-                    filled: true,
-                    fillColor: AppColors.background,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                top: 24,
+                left: 20,
+                right: 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Add Contact to Allo Zhen',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
-                    labelText: 'Phone Number (e.g. 097xxxxxxx)',
-                    labelStyle: const TextStyle(color: AppColors.textSecondary),
-                    filled: true,
-                    fillColor: AppColors.background,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: isSubmitting ? null : verifyAndAddUser,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: nameController,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      labelText: 'Full Name',
+                      labelStyle: const TextStyle(color: AppColors.textSecondary),
+                      filled: true,
+                      fillColor: AppColors.background,
+                      border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
                       ),
                     ),
-                    child: isSubmitting
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            'Verify & Start Chat',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    },
-  );
-}
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      labelText: 'Phone Number (e.g. 097xxxxxxx)',
+                      labelStyle: const TextStyle(color: AppColors.textSecondary),
+                      filled: true,
+                      fillColor: AppColors.background,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: isSubmitting ? null : verifyAndAddUser,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: isSubmitting
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Verify & Start Chat',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

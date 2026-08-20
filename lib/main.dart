@@ -4,8 +4,6 @@ import 'package:workmanager/workmanager.dart';
 import 'core/constants/app_colors.dart';
 import 'core/services/notification_service.dart';
 import 'core/database/sqlite_service.dart';
-
-// ✅ IMPORT ALL ROUTE SCREENS
 import 'views/auth/splash_screen.dart';
 import 'views/auth/phone_input_screen.dart';
 import 'views/auth/sign_in_screen.dart';
@@ -22,11 +20,14 @@ const String fetchUnreadMessagesTask = 'fetchUnreadMessagesTask';
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     try {
-      // 1. Re-initialize Notification Service in background isolate
+      // 1. Ensure Flutter bindings are ready in the background isolate
+      WidgetsFlutterBinding.ensureInitialized();
+
+      // 2. Re-initialize Notification Service in background isolate
       await NotificationService.instance.init();
 
-      // 2. Re-initialize Supabase client
-      if (Supabase.instance.client.auth.currentSession == null) {
+      // 3. Unconditionally initialize Supabase in the background isolate
+      if (!SupasedIsInitializedSafely()) {
         await Supabase.initialize(
           url: _supabaseUrl,
           anonKey: _supabaseAnonKey,
@@ -37,7 +38,7 @@ void callbackDispatcher() {
       final currentUser = client.auth.currentUser;
 
       if (currentUser != null) {
-        // 3. Query for new unread messages directed to the current user
+        // 4. Query for new unread messages directed to the current user
         final response = await client
             .from('messages')
             .select('id, content, sender_id, recipient_id')
@@ -47,7 +48,7 @@ void callbackDispatcher() {
 
         for (final msg in (response as List)) {
           final String content = msg['content'] ?? 'New message received';
-          // 4. Show the notification
+          // 5. Show the notification
           await NotificationService.instance.showNotification(
             id: msg['id'].hashCode,
             title: 'Allo Zhen',
@@ -61,6 +62,15 @@ void callbackDispatcher() {
       return Future.value(false);
     }
   });
+}
+
+// Helper to safely check if Supabase is initialized in this isolate
+bool SupasedIsInitializedSafely() {
+  try {
+    return Supabase.instance.client != null;
+  } catch (_) {
+    return false;
+  }
 }
 
 Future<void> main() async {
@@ -77,9 +87,6 @@ Future<void> main() async {
       FlutterError.presentError(details);
     }
   };
-
-  // 2. Global Unhandled Error Handling (your existing code)
-  // Kept as-is, but the above filter will prevent Supabase spam
 
   // 3. Initialize Local Notification Service (Safe)
   try {
@@ -107,18 +114,18 @@ Future<void> main() async {
     debugPrint('SQLite Initialization Error: $e');
   }
 
-  // 6. ✅ UPDATED: WorkManager runs every 1 minute for near-instant notifications
+  // 6. ✅ WorkManager Initialization
   try {
     await Workmanager().initialize(
       callbackDispatcher,
       isInDebugMode: false,
     );
 
-    // Register a periodic task running every 1 minute
+    // Register a periodic task running every 15 minutes (iOS minimum limit is typically 15 mins)
     await Workmanager().registerPeriodicTask(
       'allo_zhen_background_sync',
       fetchUnreadMessagesTask,
-      frequency: const Duration(minutes: 1),
+      frequency: const Duration(minutes: 15), // Note: iOS ignores < 15 min constraints
       constraints: Constraints(
         networkType: NetworkType.connected,
       ),
@@ -166,9 +173,10 @@ class AlloZhenApp extends StatelessWidget {
           case '/sign_in':
             return MaterialPageRoute(builder: (_) => SignInScreen());
           case '/profile_setup':
-            final args = settings.arguments as String?;
+            // ✅ FIXED: Now correctly receives the passed phone number
+            final args = settings.arguments as String? ?? '';
             return MaterialPageRoute(
-              builder: (_) => ProfileSetupScreen(phoneNumber: args ?? ''),
+              builder: (_) => ProfileSetupScreen(phoneNumber: args),
             );
           default:
             return MaterialPageRoute(builder: (_) => SplashScreen());
